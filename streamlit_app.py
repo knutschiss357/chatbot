@@ -1,22 +1,23 @@
 import streamlit as st
-from openai import OpenAI
+import google.generativeai as genai
 
 # タイトルと説明を表示
 st.title("💬 Chatbot")
 st.write(
-    "これはOpenAIのGPT-3.5モデルを使用したシンプルなチャットボットです。"
-    "このアプリを使用するには、OpenAI APIキーが必要です。"
-    "[こちら](https://platform.openai.com/account/api-keys)から取得できます。"
+    "これはGoogle Geminiモデルを使用したシンプルなチャットボットです。"
+    "このアプリを使用するには、Google APIキーが必要です。"
+    "[こちら](https://aistudio.google.com/app/apikey)から取得できます。"
 )
 
-# OpenAI APIキーの入力
-openai_api_key = st.text_input("OpenAI API Key", type="password")
+# Gemini APIキーの入力
+gemini_api_key = st.text_input("Google Gemini API Key", type="password")
 
-if not openai_api_key:
-    st.info("続行するにはOpenAI APIキーを入力してください。", icon="🗝️")
+if not gemini_api_key:
+    st.info("続行するにはGoogle Gemini APIキーを入力してください。", icon="🗝️")
 else:
-    # OpenAIクライアントを作成
-    client = OpenAI(api_key=openai_api_key)
+    # Geminiクライアントを作成
+    genai.configure(api_key=gemini_api_key)
+    model = genai.GenerativeModel("gemini-pro")
     
     # セッション状態でチャットメッセージを保存
     if "messages" not in st.session_state:
@@ -34,23 +35,21 @@ else:
         with st.chat_message("user"):
             st.markdown(prompt)
         
-        # OpenAI APIを使用して応答を生成
+        # Gemini APIを使用して応答を生成
         try:
-            stream = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": m["role"], "content": m["content"]}
-                    for m in st.session_state.messages
-                ],
-                stream=True,
-            )
+            chat_history = [
+                {"role": m["role"], "parts": [m["content"]]}
+                for m in st.session_state.messages
+            ]
+            response = model.generate_content(chat_history)
+            assistant_reply = response.text if hasattr(response, "text") else str(response)
             
-            # ストリーミングレスポンスを表示
+            # アシスタントの応答を表示
             with st.chat_message("assistant"):
-                response = st.write_stream(stream)
+                st.markdown(assistant_reply)
             
             # アシスタントの応答を保存
-            st.session_state.messages.append({"role": "assistant", "content": response})
+            st.session_state.messages.append({"role": "assistant", "content": assistant_reply})
             
         except Exception as e:
             st.error(f"エラーが発生しました: {e}")
