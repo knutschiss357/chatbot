@@ -18,6 +18,7 @@ else:
     # Geminiクライアントを初期化
     genai.configure(api_key=gemini_api_key)
     model = genai.GenerativeModel("gemini-pro")
+    chat = model.start_chat(history=[])
 
     # セッション状態でチャットメッセージを保存
     if "messages" not in st.session_state:
@@ -37,11 +38,7 @@ else:
 
         # Gemini APIを使用して応答を生成
         try:
-            chat_history = [
-                {"role": m["role"], "parts": [m["content"]]}
-                for m in st.session_state.messages
-            ]
-            response = model.generate_content(chat_history)
+            response = chat.send_message(prompt)
             assistant_reply = getattr(response, "text", str(response))
 
             # アシスタントの応答を表示
